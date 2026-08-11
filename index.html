@@ -109,6 +109,41 @@
     to{background-position:left calc(50% - var(--pitch)), right calc(50% + var(--pitch))}
   }
 
+  /* smaller, tighter bulbs for the secondary panels */
+  .bulbs.sm{--pitch:17px}
+  .bulbs.sm, .bulbs.sm::after{
+    background-size:var(--pitch) 11px, var(--pitch) 11px;
+  }
+  .bulbs.sm::after{background-size:11px var(--pitch), 11px var(--pitch)}
+
+  /* each area gets its own bulb colour so the room reads as a set */
+  .stage .bulbs{
+    --bulb:radial-gradient(circle at center, #FFF3F8 0 2px, var(--pink) 2px 3.4px, rgba(255,46,136,.2) 3.4px 5px, transparent 5px);
+    filter:drop-shadow(0 0 5px rgba(255,46,136,.65));
+  }
+  .stage.objection .bulbs{
+    --bulb:radial-gradient(circle at center, #FFF0F0 0 2px, #FF3B57 2px 3.4px, rgba(255,59,87,.22) 3.4px 5px, transparent 5px);
+    filter:drop-shadow(0 0 6px rgba(255,59,87,.8));
+    animation-duration:.42s;                    /* lights race when the objection hits */
+  }
+  .stage.objection .bulbs::after{animation-duration:.42s}
+  .buzzer-wrap{position:relative;max-width:728px;margin:0 auto;border-radius:18px;padding:5px}
+  .buzzer-wrap .bulbs{
+    --bulb:radial-gradient(circle at center, #FFFCEC 0 2px, #FFD84D 2px 3.4px, rgba(255,216,77,.22) 3.4px 5px, transparent 5px);
+    z-index:2;
+  }
+  .roll.obj + .bulbs, .buzzer-wrap:has(.roll.obj) .bulbs{
+    --bulb:radial-gradient(circle at center, #FFF0F5 0 2px, var(--pink) 2px 3.4px, rgba(255,46,136,.22) 3.4px 5px, transparent 5px);
+  }
+  .readout-wrap{position:relative;border-radius:14px;padding:9px}
+  .readout-wrap .bulbs{
+    --pitch:19px;
+    --bulb:radial-gradient(circle at center, #EFFFFB 0 2px, var(--teal) 2px 3.4px, rgba(22,211,196,.22) 3.4px 5px, transparent 5px);
+    filter:drop-shadow(0 0 5px rgba(22,211,196,.6));
+  }
+  .readout-wrap .bulbs, .readout-wrap .bulbs::after{background-size:var(--pitch) 11px, var(--pitch) 11px}
+  .readout-wrap .bulbs::after{background-size:11px var(--pitch), 11px var(--pitch)}
+
   /* ---- the sign over the stage: a lit marquee, Price-is-Right scale ---- */
   header{display:block;margin-bottom:10px}
   .sign{
@@ -180,7 +215,7 @@
 
   /* ---- host's card ---- */
   .stage{
-    margin:0;padding:10px 14px 12px;border-radius:16px;
+    position:relative;margin:0;padding:16px 20px 18px;border-radius:16px;
     background:linear-gradient(180deg, rgba(90,30,140,.92), rgba(35,12,58,.92));
     border:1px solid rgba(255,201,60,.4);
     display:flex;gap:10px;align-items:flex-end;
@@ -251,15 +286,11 @@
   .ball{
     position:absolute;left:50%;top:42%;width:132px;height:132px;
     margin:-66px 0 0 -66px;z-index:0;pointer-events:none;
-    perspective:400px;opacity:.85;
+    perspective:420px;
   }
   .ball-spin{
     position:absolute;inset:0;transform-style:preserve-3d;
-    animation:ballspin 5.5s linear infinite;
-  }
-  @keyframes ballspin{
-    from{transform:rotateX(-12deg) rotateY(0deg)}
-    to  {transform:rotateX(-12deg) rotateY(360deg)}
+    will-change:transform;
   }
   .facet{
     position:absolute;left:50%;top:50%;backface-visibility:hidden;
@@ -321,9 +352,16 @@
     50%{opacity:.9}
   }
 
-  .board{position:relative;z-index:1;display:grid;grid-template-columns:repeat(2,1fr);gap:32px 18px;perspective:1100px}
-  @media (min-width:620px){.board{grid-template-columns:repeat(3,1fr)}}
+  /* flex-wrap so a short last row centres itself — with two dice the
+     objection die sits centred underneath rather than hanging left */
+  .board{
+    position:relative;z-index:1;display:flex;flex-wrap:wrap;
+    justify-content:center;align-items:flex-start;
+    gap:32px 18px;perspective:1100px;
+  }
+  .slot{width:var(--die);flex:0 0 auto}
   .slot{display:flex;flex-direction:column;align-items:center;gap:0}
+  .slot .cube-wrap{margin:0 auto}
   /* ---- ribbon banner behind each die's name ---- */
   .slot .label{
     position:relative;z-index:3;margin-top:44px;
@@ -467,7 +505,8 @@
   .d-obj .panel{color:#8E0C1E}
 
   /* ---- scoreboard ---- */
-  .readout{margin-top:18px;display:grid;gap:8px}
+  .readout{display:grid;gap:8px}
+  .readout-wrap{margin-top:18px}
   .line{
     background:linear-gradient(180deg, rgba(90,30,140,.85), rgba(28,10,48,.92));
     border:1px solid rgba(255,201,60,.3);border-left:6px solid var(--gold);
@@ -489,6 +528,7 @@
     background:linear-gradient(180deg, rgba(26,8,38,0) 0%, var(--night) 42%);
   }
   .roll{
+    position:relative;z-index:1;
     font-variation-settings:"wdth" 125,"wght" 900;display:block;width:100%;max-width:728px;margin:0 auto;cursor:pointer;
     font-family:"Roboto Flex","Roboto",system-ui,sans-serif;font-size:16px;letter-spacing:.04em;
     color:#4A2600;background:linear-gradient(180deg,#FFE898 0%, var(--gold) 52%, #E09A0C 100%);
@@ -582,7 +622,8 @@
 </head>
 <body>
 
-<audio id="theme" src="theme.mp3" loop preload="auto"></audio>
+<audio id="theme" src="theme.mp3" loop preload="auto" autoplay></audio>
+<audio id="applause" src="applause.mp3" preload="auto"></audio>
 <div class="rays" aria-hidden="true"></div>
 <div class="klaxon" id="klaxon" aria-hidden="true"></div>
 
@@ -601,6 +642,7 @@
 
 
 <div class="stage" id="stage">
+  <div class="bulbs sm" aria-hidden="true"></div>
   <div class="host" aria-hidden="true">
     <svg viewBox="0 0 92 86" class="host-svg">
       <defs>
@@ -697,12 +739,17 @@
   <div class="board" id="board"></div>
 </div>
 
-<div class="readout" id="readout" hidden></div>
+<div class="readout-wrap" id="readoutWrap" hidden>
+  <div class="bulbs" aria-hidden="true"></div>
+  <div class="readout" id="readout"></div>
+</div>
 
 <div class="bar">
-  <button class="roll" id="rollBtn">Shake or tap to roll</button>
+  <div class="buzzer-wrap">
+    <div class="bulbs sm" aria-hidden="true"></div>
+    <button class="roll" id="rollBtn">Shake or tap to roll</button>
   <div class="ctrls">
-    <button class="gear" id="musicBtn" aria-pressed="false" title="Theme song">Music off</button>
+    <button class="gear" id="musicBtn" aria-pressed="true" title="Theme song">Music on</button>
     <button class="gear" id="soundBtn" aria-pressed="true" title="Sound">Sound on</button>
     <button class="gear" id="openSettings">Settings</button>
   </div>
@@ -715,7 +762,7 @@
 
 <footer class="legal">
   <p>The Android robot is reproduced or modified from work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License.</p>
-  <p>Theme song: “Game Show” by Silent Partner.</p>
+  <p>Theme song: “Game Show” by Silent Partner. Applause sound effect from Pixabay.</p>
   <p>Android is a trademark of Google LLC. This is an unofficial training tool and is not affiliated with or endorsed by Google.</p>
 </footer>
 
@@ -858,9 +905,11 @@ function buildBoard(){
 // a tumbling cube reaches ~1.42x its width at the corners, so cap the die at
 // the column width divided by that — this is what stops neighbours clipping
 function sizeDice(){
-  const col = board.getBoundingClientRect().width /
-              (window.innerWidth >= 620 ? 3 : 2);
-  const size = Math.max(78, Math.min(118, Math.floor(col / 1.42)));
+  const perRow = window.innerWidth >= 620 ? 3 : 2;
+  const gap = 18;
+  const avail = (board.getBoundingClientRect().width - gap * (perRow - 1)) / perRow;
+  // a tumbling cube reaches ~1.42x its width at the corners
+  const size = Math.max(78, Math.min(118, Math.floor(avail / 1.42)));
   document.documentElement.style.setProperty('--die', size + 'px');
 }
 
@@ -1008,59 +1057,11 @@ const Sfx = (function(){
   }
 
 
-  // ---- applause: filtered noise bursts stacked into a crowd ----
-  function applause(delayMs, intensity){
-    if(!on) return; const c = ac(); if(!c) return;
-    const t0 = c.currentTime + (delayMs||0)/1000;
-    const dur = intensity > 1 ? 2.4 : 1.5;
-
-    const hp = c.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=700;
-    const lp = c.createBiquadFilter(); lp.type='lowpass';  lp.frequency.value=6500;
-    const swell = c.createGain();
-    swell.gain.setValueAtTime(0, t0);
-    swell.gain.linearRampToValueAtTime(0.30*intensity, t0 + 0.18);   // crowd catches on
-    swell.gain.setValueAtTime(0.30*intensity, t0 + dur*0.55);
-    swell.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);        // dies away
-    hp.connect(lp).connect(swell).connect(c.destination);
-
-    // individual claps, denser at the peak
-    const claps = Math.round(90 * intensity);
-    for(let i=0;i<claps;i++){
-      const prog = Math.random();
-      const t = t0 + 0.04 + Math.pow(prog, 0.7) * dur * 0.92;
-      const src = c.createBufferSource(); src.buffer = noiseBuf(c);
-      src.playbackRate.value = 0.7 + Math.random()*0.9;
-      const g = c.createGain();
-      const v = 0.05 + Math.random()*0.09;
-      g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(v, t + 0.002);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.035 + Math.random()*0.03);
-      src.connect(g).connect(hp);
-      src.start(t); src.stop(t + 0.09);
-    }
-    // a couple of whoops over the top on a big win
-    if(intensity > 1){
-      for(let i=0;i<3;i++){
-        const t = t0 + 0.2 + Math.random()*1.2;
-        const o = c.createOscillator(), g = c.createGain();
-        o.type='sawtooth';
-        o.frequency.setValueAtTime(420 + Math.random()*180, t);
-        o.frequency.linearRampToValueAtTime(900 + Math.random()*300, t + 0.16);
-        o.frequency.linearRampToValueAtTime(500, t + 0.42);
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(0.035, t + 0.05);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
-        o.connect(g).connect(lp);
-        o.start(t); o.stop(t + 0.5);
-      }
-    }
-  }
-
   // ---- cheesy game show sting: brass-ish stab over a funk bass ----
 
   return {
     arm: () => ac(),
-    rattle, thud, chime, alarm, applause,
+    rattle, thud, chime, alarm,
     toggle(){ on = !on; if(on) ac(); return on; },
     get enabled(){ return on; }
   };
@@ -1105,6 +1106,23 @@ const Music = (function(){
   };
 })();
 
+/* ---------- applause (real recording) ---------- */
+const Applause = (function(){
+  const el = document.getElementById('applause');
+  return {
+    play(level){
+      if(!el || !Sfx.enabled) return;
+      try{
+        el.pause();
+        el.currentTime = 0;              // restart if a round is fired quickly
+        el.volume = level === undefined ? 0.85 : level;
+        el.play().catch(()=>{});
+      }catch(e){ /* nothing to do — the round carries on silently */ }
+    },
+    stop(){ if(el){ el.pause(); try{ el.currentTime = 0; }catch(e){} } }
+  };
+})();
+
 const CHIME_NOTES = [587.33, 698.46, 880, 1046.5];   // D5 F5 A5 C6 — resolves upward
 
 /* ---------- rolling ---------- */
@@ -1117,6 +1135,7 @@ const MIN_AIR = 2000; // no die resolves before it has spun this long
 // look. Driving each axis on a different curve makes it genuinely tumble.
 const rollSheet = (()=>{ const s = document.createElement('style'); document.head.appendChild(s); return s.sheet; })();
 const restPose = {};                      // key -> where that die is currently sitting
+const ruleFor = {};                       // key -> name of that die's live keyframes
 let rollSeq = 0;
 
 const mod360 = v => ((v % 360) + 360) % 360;
@@ -1153,8 +1172,16 @@ function tumbleKeyframes(key, from, to){
     body.push(`${(f*100).toFixed(3)}%{transform:rotateZ(${rz.toFixed(2)}deg) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)}`);
   }
 
+  // retire this die's previous rule first; it is not running any more because
+  // the same element is about to be re-animated
+  const old = ruleFor[key];
+  if(old){
+    for(let i=0;i<rollSheet.cssRules.length;i++){
+      if(rollSheet.cssRules[i].name === old){ rollSheet.deleteRule(i); break; }
+    }
+  }
   rollSheet.insertRule(`@keyframes ${name}{${body.join('')}}`, rollSheet.cssRules.length);
-  while(rollSheet.cssRules.length > 30) rollSheet.deleteRule(0);   // keep the sheet from growing
+  ruleFor[key] = name;
   return name;
 }
 
@@ -1190,6 +1217,12 @@ function rollCube(key, landAfter){
   void cube.offsetWidth;
   cube.style.animation = `${name} ${total}ms linear both`;
   restPose[key] = to;
+  cube.addEventListener('animationend', function pin(){
+    cube.removeEventListener('animationend', pin);
+    cube.style.animation = 'none';
+    cube.style.transform =
+      `rotateZ(${to.rz}deg) rotateX(${to.rx}deg) rotateY(${to.ry}deg)`;
+  });
 
   [[hop,'tumble'],[shade,'shade']].forEach(([el,nm])=>{
     el.style.animation = 'none';
@@ -1219,7 +1252,7 @@ function setPhase(p){
     rollBtn.textContent = 'Shake or tap to play';
     rollBtn.className = 'roll';
     document.getElementById('slot-obj').classList.add('pending');
-    readout.hidden = true;
+    document.getElementById('readoutWrap').hidden = true;
   }
   if(p==='pitching'){
     prompt.textContent = 'Make your pitch, live and out loud. When you’re done, shake for the objection…';
@@ -1261,7 +1294,7 @@ function buildBall(){
       f.style.height = (tileH + 1.2) + 'px';
       f.style.margin = (-(tileH+1.2)/2) + 'px 0 0 ' + (-(tileW+1.2)/2) + 'px';
       // random mirror tint so the surface glitters instead of reading flat
-      const v = 168 + Math.floor(Math.random()*78);
+      const v = 148 + Math.floor(Math.random()*74);
       const warm = Math.random() < .18;
       f.style.setProperty('--f', warm
         ? `rgb(${v},${v-8},${Math.max(150,v-34)})`
@@ -1273,6 +1306,17 @@ function buildBall(){
   }
 
   host.appendChild(spin);
+
+  // Spin from JS. A CSS animation here gets silenced by any ancestor that
+  // flattens the 3D context, and the failure is silent — this can't be.
+  let angle = 0, last = performance.now();
+  (function turn(now){
+    angle = (angle + (now - last) * 0.055) % 360;    // ~6.5s per revolution
+    last = now;
+    spin.style.transform = 'rotateX(-12deg) rotateY(' + angle + 'deg)';
+    requestAnimationFrame(turn);
+  })(last);
+
   const shade = document.createElement('div'); shade.className = 'ball-shade';
   const glow  = document.createElement('div'); glow.className  = 'ball-glow';
   host.appendChild(shade); host.appendChild(glow);
@@ -1310,7 +1354,7 @@ function renderReadout(){
     .map(k=>`<div class="line"><b>${dice[k].label}</b><span>${results[k]}</span></div>`);
   if(results.obj) rows.push(`<div class="line obj"><b>Objection</b><span>${results.obj}</span></div>`);
   readout.innerHTML = rows.join('');
-  readout.hidden = rows.length === 0;
+  document.getElementById('readoutWrap').hidden = rows.length === 0;
 }
 
 let locked = false;
@@ -1321,8 +1365,8 @@ function advance(){
 
   if(phase === 'idle' || phase === 'resolving'){
     // first roll is a real user gesture, so the browser will let audio start
-    if(!Music.playing && !Music.wanted) Music.play().then(setMusicLabel);
-    Music.duck(2600, 0.2);
+    Applause.play(0.85);            // crowd greets the roll, fades over ~3s
+    Music.duck(3000, 0.16);
     results = {};
     setPhase('idle');
     const keys = activeKeys();
@@ -1338,11 +1382,7 @@ function advance(){
         flare(k);
         Sfx.chime(0, CHIME_NOTES[i % CHIME_NOTES.length]);
         if(i === keys.length - 1){
-          Sfx.applause(120, 1.25);        // full house once the board is set
-          Music.duck(2400, 0.16);
           confetti();
-        } else {
-          Sfx.applause(60, 0.42);         // polite ripple for each earlier die
         }
       }, r.total);
     });
@@ -1362,7 +1402,6 @@ function advance(){
       klaxonBlink();
       Music.duck(2600, 0.08);        // siren needs the room
       Sfx.alarm(0);
-      Sfx.applause(1500, 0.5);        // sympathetic clap after the siren clears
       if(navigator.vibrate) navigator.vibrate([300,20,300,20,300]);
       setPhase('resolving');
       locked = false;
@@ -1504,6 +1543,24 @@ function buildEditors(){
 }
 document.getElementById('openSettings').addEventListener('click', ()=>{ buildEditors(); dlg.showModal(); });
 const musicBtn = document.getElementById('musicBtn');
+
+// Music is on by default. Browsers block audio until the page has been
+// touched, so try immediately and retry on the first interaction.
+(function armMusic(){
+  Music.play().then(ok=>{
+    setMusicLabel(ok);
+    if(ok) return;
+    const kick = ()=>{
+      Music.play().then(ok2=>{ if(ok2) setMusicLabel(true); });
+      window.removeEventListener('pointerdown', kick);
+      window.removeEventListener('touchstart', kick);
+      window.removeEventListener('keydown', kick);
+    };
+    window.addEventListener('pointerdown', kick, {once:false});
+    window.addEventListener('touchstart', kick, {once:false});
+    window.addEventListener('keydown', kick, {once:false});
+  });
+})();
 function setMusicLabel(on){
   musicBtn.textContent = on ? 'Music on' : 'Music off';
   musicBtn.setAttribute('aria-pressed', String(on));
@@ -1517,7 +1574,7 @@ musicBtn.addEventListener('click', async (e)=>{
 
 document.getElementById('soundBtn').addEventListener('click', (e)=>{
   const on = Sfx.toggle();
-  if(!on && Music.playing){ Music.stop(); setMusicLabel(false); }
+  if(!on){ Applause.stop(); if(Music.playing){ Music.stop(); setMusicLabel(false); } }
   e.currentTarget.textContent = on ? 'Sound on' : 'Sound off';
   e.currentTarget.setAttribute('aria-pressed', String(on));
 });
