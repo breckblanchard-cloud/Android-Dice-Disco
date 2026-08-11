@@ -23,16 +23,16 @@ Everything is configurable in **Backstage** (the Settings button):
 - **Number of dice** — 2, 3, or 4 per round, and which ones are in play
 - **Face text** — all six faces of every die are editable, so the same game
   works for any product line or training focus
+- **Motion sensor meter** — a diagnostic bar for checking shake detection
 
 Settings save to the browser on the device you're using.
 
 ## Running it
 
-Three files, all in the same folder:
+Two files, in the same folder:
 
-- `index.html`
-- `theme.mp3`
-- `applause.mp3`
+- `index.html` — the whole app; the applause and alarm sounds are embedded in it
+- `theme.mp3` — the backing track
 
 It needs to be served over https, not opened as a local file — the motion
 sensor and the audio both require it. GitHub Pages works: Settings → Pages →
