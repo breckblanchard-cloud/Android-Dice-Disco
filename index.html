@@ -52,7 +52,7 @@
   /* ---- red emergency wash around the whole screen edge ---- */
   .klaxon{
     position:fixed;top:0;left:0;width:100vw;height:100vh;height:100dvh;
-    z-index:2147483647;pointer-events:none;opacity:0;
+    z-index:2147483647;pointer-events:none;opacity:0;transition:none;
     /* solid red rim + glow falling inward; centre stays clear for the dice */
     border:14px solid rgba(255,40,70,.95);
     box-shadow:
@@ -62,23 +62,7 @@
       inset 0 0 220px 70px rgba(224,27,60,.34),
       0 0 40px 10px rgba(255,30,60,.5);
   }
-  /* three flashes, one per pulse of the alarm recording (pulses at 0, 1.5, 3.0s) */
-  .klaxon.on{animation:klaxon-blink 3.9s steps(1,end) 1 both}
-  @keyframes klaxon-blink{
-    0%    {opacity:0}
-    1%    {opacity:1}
-    22%   {opacity:1}
-    24%   {opacity:0}
-    38%   {opacity:0}
-    39%   {opacity:1}
-    60%   {opacity:1}
-    62%   {opacity:0}
-    76%   {opacity:0}
-    77%   {opacity:1}
-    92%   {opacity:1}
-    95%   {opacity:0}
-    100%  {opacity:0}
-  }
+  /* flashes are driven from JS so Reduce Motion can't silence them */
 
   /* ---- marquee bulbs: the signature of the whole set ---- */
   /* Horizontal rows and vertical columns live on separate layers: painting all
@@ -352,7 +336,7 @@
   .board{
     position:relative;z-index:1;display:flex;flex-wrap:wrap;
     justify-content:center;align-items:flex-start;
-    gap:32px 18px;perspective:1100px;
+    gap:34px 18px;perspective:1100px;
   }
   .slot{width:var(--die);flex:0 0 auto}
   .slot{display:flex;flex-direction:column;align-items:center;gap:0}
@@ -561,6 +545,7 @@
   }
   .hint{text-align:center;font-size:11.5px;color:var(--cream-soft);margin:8px 0 0}
   .hint button{background:none;border:0;color:var(--gold);font:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:0}
+  .meter[hidden]{display:none}
   .meter{max-width:728px;margin:8px auto 0;display:flex;align-items:center;gap:10px;font-size:10.5px;color:var(--cream-soft)}
   .meter-track{flex:1;height:8px;border-radius:99px;background:rgba(255,255,255,.15);overflow:hidden}
   .meter-fill{height:100%;width:0;background:var(--teal);border-radius:99px;transition:width .08s linear}
@@ -619,7 +604,7 @@
   .reset{background:none;border:0;color:var(--cream-soft);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;margin-bottom:16px;padding:0}
   :focus-visible{outline:3px solid var(--teal);outline-offset:3px}
   @media (prefers-reduced-motion: reduce){
-    .hop,.shade,.bulbs,.bulbs::after,.line,.rays,.ball-spin,.ball-glow,.rays-sign,.glints,.floor::before,h1,.host-svg *,.slot .label i::after,.klaxon{animation:none !important}
+    .hop,.shade,.bulbs,.bulbs::after,.line,.rays,.ball-spin,.ball-glow,.rays-sign,.glints,.floor::before,h1,.host-svg *,.slot .label i::after{animation:none !important}
   }
 </style>
 </head>
@@ -857,10 +842,10 @@ async function load(){
       if(cfg.dice) dice = cfg.dice;
       if(Array.isArray(cfg.activeDice) && cfg.activeDice.length >= 2){
         activeDice = cfg.activeDice.filter(k => ORDER.includes(k));
-      if(typeof cfg.showMeter === 'boolean') showMeter = cfg.showMeter;
       } else if(typeof cfg.useAttach === 'boolean'){        // migrate older saves
         activeDice = cfg.useAttach ? ORDER.slice() : ORDER.slice(0,3);
       }
+      if(typeof cfg.showMeter === 'boolean') showMeter = cfg.showMeter;
     }
   }catch(e){ /* first run or storage unavailable — defaults are fine */ }
 }
@@ -914,13 +899,20 @@ function buildBoard(){
 
 // a tumbling cube reaches ~1.42x its width at the corners, so cap the die at
 // the column width divided by that — this is what stops neighbours clipping
+// A cube tumbling in 3D reaches its BODY diagonal (root 3 = 1.732), and
+// perspective magnifies the near corner another ~5%. Sizing dice to that would
+// make them tiny, so instead they stay large at rest and shrink while airborne.
+const REACH = 1.732 * 1.05;
+let FLY = 0.68;                     // in-flight scale, recomputed per layout
+
 function sizeDice(){
   const perRow = window.innerWidth >= 620 ? 3 : 2;
   const gap = 18;
-  const avail = (board.getBoundingClientRect().width - gap * (perRow - 1)) / perRow;
-  // a tumbling cube reaches ~1.42x its width at the corners
-  const size = Math.max(78, Math.min(118, Math.floor(avail / 1.42)));
+  const col = (board.getBoundingClientRect().width - gap * (perRow - 1)) / perRow;
+  // resting footprint is the face plus the slight display tilt, about 1.12x
+  const size = Math.max(78, Math.min(118, Math.floor(col / 1.12)));
   document.documentElement.style.setProperty('--die', size + 'px');
+  FLY = Math.max(0.5, Math.min(1, (col - 4) / (size * REACH)));
 }
 
 function paintFaces(key){
@@ -1058,7 +1050,10 @@ const Music = (function(){
       wanted = true;
       el.volume = FULL;
       try{ await el.play(); return true; }
-      catch(e){ return false; }      // browser blocked it until a real tap
+      catch(e){
+        if(e && e.name !== 'NotAllowedError') reportAudio('theme', e);
+        return false;                // otherwise just waiting for a real tap
+      }
     },
     stop(){ wanted = false; if(el){ el.pause(); } },
     get playing(){ return el && !el.paused; },
@@ -1177,7 +1172,15 @@ function tumbleKeyframes(key, from, to){
     const rx = from.rx + dx * Math.pow(p, 1.00) + wob;
     const ry = from.ry + dy * Math.pow(p, 0.72) - wob * 0.62;
     const rz = from.rz + dz * Math.pow(p, 1.42) + wob * 0.38;
-    body.push(`${(f*100).toFixed(3)}%{transform:rotateZ(${rz.toFixed(2)}deg) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)}`);
+
+    // shrink while airborne so a spinning corner stays inside its column,
+    // easing back to full size as the die settles
+    const grow = f < 0.06 ? f / 0.06 : (f > 0.82 ? (f - 0.82) / 0.18 : 0);
+    const sc = f < 0.06 ? 1 + (FLY - 1) * grow
+             : f > 0.82 ? FLY + (1 - FLY) * (grow * grow * (3 - 2 * grow))
+             : FLY;
+
+    body.push(`${(f*100).toFixed(3)}%{transform:rotateZ(${rz.toFixed(2)}deg) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) scale(${sc.toFixed(3)})}`);
   }
 
   // retire this die's previous rule first; it is not running any more because
@@ -1229,7 +1232,7 @@ function rollCube(key, landAfter){
     cube.removeEventListener('animationend', pin);
     cube.style.animation = 'none';
     cube.style.transform =
-      `rotateZ(${to.rz}deg) rotateX(${to.rx}deg) rotateY(${to.ry}deg)`;
+      `rotateZ(${to.rz}deg) rotateX(${to.rx}deg) rotateY(${to.ry}deg) scale(1)`;
   });
 
   [[hop,'tumble'],[shade,'shade']].forEach(([el,nm])=>{
@@ -1330,13 +1333,22 @@ function buildBall(){
   host.appendChild(shade); host.appendChild(glow);
 }
 
+let klaxonTimers = [];
 function klaxonBlink(){
   const kl = document.getElementById('klaxon');
   if(!kl) return;
   if(kl.parentElement !== document.documentElement) document.documentElement.appendChild(kl);
+
+  klaxonTimers.forEach(clearTimeout);
+  klaxonTimers = [];
   kl.classList.remove('on');
-  void kl.offsetWidth;                       // restart if it's mid-blink
-  kl.classList.add('on');
+  kl.style.opacity = '0';
+
+  // three flashes, one per pulse of the alarm recording (0, 1.5s, 3.0s)
+  [0, 1500, 3000].forEach(at=>{
+    klaxonTimers.push(setTimeout(()=>{ kl.style.opacity = '1'; }, at));
+    klaxonTimers.push(setTimeout(()=>{ kl.style.opacity = '0'; }, at + 820));
+  });
 }
 
 function confetti(){
@@ -1556,19 +1568,24 @@ const musicBtn = document.getElementById('musicBtn');
 // Music is on by default. Browsers block audio until the page has been
 // touched, so try immediately and retry on the first interaction.
 (function armMusic(){
-  Music.play().then(ok=>{
-    setMusicLabel(ok);
-    if(ok) return;
-    const kick = ()=>{
-      Music.play().then(ok2=>{ if(ok2) setMusicLabel(true); });
-      window.removeEventListener('pointerdown', kick);
-      window.removeEventListener('touchstart', kick);
-      window.removeEventListener('keydown', kick);
-    };
-    window.addEventListener('pointerdown', kick, {once:false});
-    window.addEventListener('touchstart', kick, {once:false});
-    window.addEventListener('keydown', kick, {once:false});
-  });
+  const EVENTS = ['pointerdown','touchend','click','keydown'];
+  let done = false;
+
+  function drop(){
+    done = true;
+    EVENTS.forEach(e => window.removeEventListener(e, kick, true));
+  }
+  function kick(){
+    if(done) return;
+    Music.play().then(ok=>{
+      if(ok){ setMusicLabel(true); drop(); }
+      // if it failed, the listeners stay armed for the next tap
+    });
+  }
+
+  // capture phase, so a tap on a button still arms the track
+  EVENTS.forEach(e => window.addEventListener(e, kick, true));
+  Music.play().then(ok=>{ setMusicLabel(ok); if(ok) drop(); });
 })();
 function setMusicLabel(on){
   musicBtn.textContent = on ? 'Music on' : 'Music off';
@@ -1629,6 +1646,7 @@ window.addEventListener('resize', ()=>{
 (async function init(){
   buildBall();
   await load();
+  meter.hidden = !showMeter;
   buildBoard();
   setPhase('idle');
 })();
