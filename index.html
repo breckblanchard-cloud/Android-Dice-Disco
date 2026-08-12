@@ -397,6 +397,9 @@
     gap:30px 10px;perspective:2400px;
   }
   .slot{width:var(--die);flex:0 0 auto}
+  /* objection round: one die, centred, with room to tumble */
+  .board.solo{min-height:calc(var(--die) * 1.9);align-items:center;justify-content:center}
+  .board.solo .slot .label{margin-top:56px;font-size:13px;letter-spacing:.14em}
   .slot{display:flex;flex-direction:column;align-items:center;gap:0}
   .slot .cube-wrap{margin:0 auto}
   /* ---- plain lit type under each die ---- */
@@ -410,7 +413,6 @@
   }
   .slot .label i{display:none}
   .slot .label span{display:block}
-  .slot.pending .label{opacity:.5}
   #slot-obj .label{
     color:#FF7ABA;
     text-shadow:0 1px 0 rgba(0,0,0,.7), 0 0 12px rgba(255,46,136,.55);
@@ -891,14 +893,22 @@ function activeKeys(){
   return ORDER.filter(k => activeDice.includes(k));   // keep a stable board order
 }
 
-function buildBoard(){
+// mode 'main' shows the pitch dice; mode 'obj' clears the board and puts the
+// single red objection die on it, large.
+let boardMode = 'main';
+
+function buildBoard(mode){
+  boardMode = mode || 'main';
   board.innerHTML = '';
+  board.classList.toggle('solo', boardMode === 'obj');
   Object.keys(restPose).forEach(k => delete restPose[k]);   // cubes are new elements
   Object.keys(ruleFor).forEach(k => delete ruleFor[k]);
-  [...activeKeys(),'obj'].forEach(key=>{
+
+  const keys = boardMode === 'obj' ? ['obj'] : activeKeys();
+  keys.forEach(key=>{
     const d = dice[key];
     const slot = document.createElement('div');
-    slot.className = 'slot' + (key==='obj' ? ' pending' : '');
+    slot.className = 'slot';
     slot.id = 'slot-'+key;
     slot.innerHTML = `
       <div class="cube-wrap">
@@ -911,9 +921,9 @@ function buildBoard(){
       </div>
       <div class="label"><i></i><span>${d.label}</span></div>`;
     board.appendChild(slot);
-    paintFaces(key);
   });
   sizeDice();
+  keys.forEach(paintFaces);
 }
 
 // a tumbling cube reaches ~1.42x its width at the corners, so cap the die at
@@ -924,9 +934,16 @@ function buildBoard(){
 const REACH = 1.732 * 1.025;
 
 function sizeDice(){
+  const w = board.getBoundingClientRect().width;
+  if(boardMode === 'obj'){
+    // one die, whole board to itself — cap it so it stays on screen
+    const size = Math.max(120, Math.min(230, Math.floor((w - 8) / REACH)));
+    document.documentElement.style.setProperty('--die', size + 'px');
+    return;
+  }
   const perRow = window.innerWidth >= 620 ? 3 : 2;
   const gap = 10;
-  const col = (board.getBoundingClientRect().width - gap * (perRow - 1)) / perRow;
+  const col = (w - gap * (perRow - 1)) / perRow;
   const size = Math.max(70, Math.min(118, Math.floor((col - 2) / REACH)));
   document.documentElement.style.setProperty('--die', size + 'px');
 }
@@ -1280,7 +1297,6 @@ function setPhase(p){
     prompt.textContent = 'Shake that phone and let’s see what the dice have in store!';
     rollBtn.textContent = 'Shake or tap to play';
     rollBtn.className = 'roll';
-    document.getElementById('slot-obj').classList.add('pending');
     document.getElementById('readoutWrap').hidden = true;
   }
   if(p==='pitching'){
@@ -1406,6 +1422,7 @@ function advance(){
     Applause.play(0.85);            // crowd greets the roll, fades over ~3s
     Music.duck(3000, 0.12);
     results = {};
+    if(boardMode !== 'main') buildBoard('main');   // bring the pitch dice back
     setPhase('idle');
     const keys = activeKeys();
     let longest = 0;
@@ -1429,7 +1446,8 @@ function advance(){
     setTimeout(()=>{ setPhase('pitching'); locked = false; }, longest + 300);
 
   } else if(phase === 'pitching'){
-    document.getElementById('slot-obj').classList.remove('pending');
+    buildBoard('obj');                 // clear the board down to the red die
+    setPhase('pitching');              // keep the host card on the same line
     const r = rollCube('obj', MIN_AIR);
     Sfx.rattle(r.total - 150);
     Sfx.thud(r.total - 80);
@@ -1647,7 +1665,7 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
   meter.hidden = !(showMeter && gotMotion);
   await save();
   dlg.close();
-  buildBoard();
+  buildBoard('main');
   setPhase('idle');
 });
 
@@ -1657,7 +1675,7 @@ window.addEventListener('resize', ()=>{
   resizeT = setTimeout(()=>{
     if(locked) return;                 // never re-lay-out a die that is mid-roll
     sizeDice();
-    [...ORDER,'obj'].forEach(paintFaces);
+    (boardMode === 'obj' ? ['obj'] : activeKeys()).forEach(paintFaces);
   }, 220);
 });
 
