@@ -852,7 +852,7 @@ const DEFAULTS = {
     "Wants the most phone for the least money",
     "Mobile gamer — speed and screen matter"
   ]},
-  feat: { key:'feat', cls:'d-feat', label:'Feature to sell', faces:[
+  feat: { key:'feat', cls:'d-feat', label:'Feature', faces:[
     "Camera and AI photo editing",
     "Battery life and fast charging",
     "Display size, brightness, refresh rate",
@@ -1306,8 +1306,17 @@ function setPhase(p){
   phase = p;
   stage.classList.toggle('objection', p==='resolving');
   const bub = document.querySelector('.bubble');
-  bub.style.animation = 'none'; void bub.offsetWidth;
+  bub.style.animation = 'none';
+  bub.style.opacity = '';
+  bub.style.transform = '';
+  void bub.offsetWidth;
   bub.style.animation = 'bubble-pop .28s cubic-bezier(.2,.8,.3,1.3) both';
+  bub.addEventListener('animationend', function clear(){
+    bub.removeEventListener('animationend', clear);
+    bub.style.animation = 'none';        // don't leave a filled animation behind
+    bub.style.opacity = '1';
+    bub.style.transform = 'none';
+  });
   if(p==='idle'){
     prompt.textContent = 'Shake that phone and let’s see what the dice have in store!';
     rollBtn.textContent = 'Shake or tap to play';
@@ -1316,7 +1325,7 @@ function setPhase(p){
     document.getElementById('readoutWrap').hidden = true;
   }
   if(p==='pitching'){
-    prompt.textContent = 'Make your pitch, live and out loud. When you’re done, shake for the objection…';
+    prompt.textContent = 'Make your pitch, and make it FAB! Feature, Advantage, Benefit! Then shake for the objection…';
     rollBtn.textContent = 'Shake or tap for the objection';
     rollBtn.className = 'roll obj';
   }
@@ -1713,6 +1722,19 @@ window.addEventListener('resize', ()=>{
   curtain.addEventListener('keydown', e=>{
     if(e.key === 'Enter' || e.key === ' ') start();
   });
+})();
+
+// Android Chrome can drop the paint on composited layers after they scroll off
+// screen. Nudge the host card back when the page becomes visible again.
+(function repaintGuard(){
+  const nudge = ()=>{
+    const st = document.getElementById('stage');
+    if(!st) return;
+    st.style.transform = 'translateZ(0)';
+    requestAnimationFrame(()=>{ st.style.transform = ''; });
+  };
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) nudge(); });
+  window.addEventListener('pageshow', nudge);
 })();
 
 (async function init(){
