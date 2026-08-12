@@ -1,4 +1,4 @@
-# Android Dice Disco
+# Android Disco Dice
 
 A 70s game-show themed sales training game for Android device sales. Roll the
 dice, pitch to whatever comes up, then handle the objection the red die throws
