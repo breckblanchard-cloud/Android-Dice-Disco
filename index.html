@@ -1309,6 +1309,17 @@ const MIN_AIR = 2000; // no die resolves before it has spun this long
 // look. Driving each axis on a different curve makes it genuinely tumble.
 const rollSheet = (()=>{ const s = document.createElement('style'); document.head.appendChild(s); return s.sheet; })();
 const ruleFor = {};                       // key -> name of that die's live keyframes
+const recent = {};                        // key -> the last two faces that came up
+
+// Pick a face this die hasn't shown in its previous two rolls, so three
+// consecutive rolls always give three different answers on every die.
+function pickFace(key){
+  const seen = recent[key] || [];
+  const pool = [0,1,2,3,4,5].filter(i => !seen.includes(i));
+  const idx = pool[Math.floor(Math.random() * pool.length)];
+  recent[key] = [idx, ...seen].slice(0, 2);
+  return idx;
+}
 let rollSeq = 0;
 
 
@@ -1362,7 +1373,7 @@ function rollCube(key, landAfter){
   const cube = document.getElementById('cube-'+key);
   const hop = document.getElementById('hop-'+key);
   const shade = document.getElementById('shade-'+key);
-  const idx = Math.floor(Math.random()*6);
+  const idx = pickFace(key);
   const [x,y] = ORIENT[idx];
 
   // round bounce count up, so quantizing never pulls a die under the 2s floor
@@ -1786,7 +1797,9 @@ document.getElementById('testSounds').addEventListener('click', ()=>{
   setTimeout(()=> Applause.play(0.85), 300);
   setTimeout(()=> Alarm.play(), 2000);
 });
-document.getElementById('resetBtn').addEventListener('click', ()=>{ dice = clone(DEFAULTS); activeDice = ORDER.slice(0,3); showMeter = false; buildEditors(); });
+document.getElementById('resetBtn').addEventListener('click', ()=>{ dice = clone(DEFAULTS); activeDice = ORDER.slice(0,3); showMeter = false;
+  Object.keys(recent).forEach(k => delete recent[k]);
+  buildEditors(); });
 document.getElementById('saveBtn').addEventListener('click', async ()=>{
   editors.querySelectorAll('input[data-die]').forEach(inp=>{
     dice[inp.dataset.die].faces[+inp.dataset.i] = inp.value.trim() || dice[inp.dataset.die].faces[+inp.dataset.i];
