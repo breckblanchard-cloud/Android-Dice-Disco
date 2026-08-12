@@ -399,69 +399,21 @@
   .slot{width:var(--die);flex:0 0 auto}
   .slot{display:flex;flex-direction:column;align-items:center;gap:0}
   .slot .cube-wrap{margin:0 auto}
-  /* ---- ribbon banner behind each die's name ---- */
+  /* ---- plain lit type under each die ---- */
   .slot .label{
     position:relative;z-index:3;margin-top:44px;
     font-family:"Roboto Flex","Roboto",system-ui,sans-serif;
-    font-variation-settings:"wdth" 108,"wght" 900;
-    font-size:11px;text-transform:uppercase;letter-spacing:.055em;
-    color:#170624;text-align:center;
-    padding:7px 14px;border-radius:4px;
-    background:
-      linear-gradient(180deg, #FFDF8A 0%, #F5B21C 38%, #D08F06 56%, #F0C452 100%);
-    box-shadow:
-      0 2px 0 rgba(0,0,0,.45),
-      inset 0 1px 0 rgba(255,255,255,.85),
-      inset 0 -2px 0 rgba(140,90,0,.35);
-    text-shadow:0 1px 0 rgba(255,240,190,.45);
-    filter:drop-shadow(0 0 7px rgba(255,201,60,.3));
+    font-variation-settings:"wdth" 112,"wght" 800;
+    font-size:11px;text-transform:uppercase;letter-spacing:.1em;
+    color:var(--gold);text-align:center;
+    text-shadow:0 1px 0 rgba(0,0,0,.7), 0 0 12px rgba(255,201,60,.45);
   }
-  /* notched ribbon tails */
-  .slot .label::before, .slot .label::after{
-    content:"";position:absolute;top:3px;bottom:3px;width:11px;
-    background:linear-gradient(180deg, #D99B0C 0%, #B57C05 100%);
-    box-shadow:0 2px 0 rgba(0,0,0,.4);
-  }
-  .slot .label::before{
-    left:-9px;clip-path:polygon(0 0, 100% 0, 100% 100%, 0 100%, 42% 50%);
-  }
-  .slot .label::after{
-    right:-9px;clip-path:polygon(0 0, 100% 0, 58% 50%, 100% 100%, 0 100%);
-  }
-  /* sheen sweeping across the banner */
-  .slot .label span{
-    position:relative;z-index:1;display:block;
-  }
-  .slot .label i{
-    position:absolute;inset:0;border-radius:4px;overflow:hidden;pointer-events:none;
-  }
-  .slot .label i{z-index:0}
-  .slot .label span{z-index:2}
-  .slot .label i::after{
-    content:"";position:absolute;top:-60%;left:-70%;width:35%;height:220%;
-    background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
-    transform:rotate(18deg);
-    animation:sheen 3.6s ease-in-out infinite;
-  }
-  @keyframes sheen{
-    0%,72%{left:-70%}
-    88%,100%{left:130%}
-  }
-  /* stagger so the banners glint one after another, not in unison */
-  .slot:nth-child(2) .label i::after{animation-delay:.5s}
-  .slot:nth-child(3) .label i::after{animation-delay:1s}
-  .slot:nth-child(4) .label i::after{animation-delay:1.5s}
-  .slot:nth-child(5) .label i::after{animation-delay:2s}
-
-  .slot.pending .label{filter:none;opacity:.55}
+  .slot .label i{display:none}
+  .slot .label span{display:block}
+  .slot.pending .label{opacity:.5}
   #slot-obj .label{
-    color:#FFFFFF;
-    background:linear-gradient(180deg, #F04B92 0%, #D0176E 38%, #9A0850 56%, #E0489A 100%);
-    text-shadow:0 1px 2px rgba(70,2,36,.85);
-    filter:drop-shadow(0 0 9px rgba(255,46,136,.5));
-  }
-  #slot-obj .label::before, #slot-obj .label::after{
-    background:linear-gradient(180deg, #C40C68 0%, #8A0448 100%);
+    color:#FF7ABA;
+    text-shadow:0 1px 0 rgba(0,0,0,.7), 0 0 12px rgba(255,46,136,.55);
   }
 
   .cube-wrap{width:var(--die);height:var(--die);perspective:900px;position:relative;z-index:1}
@@ -662,7 +614,7 @@
   .reset{background:none;border:0;color:var(--cream-soft);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;margin-bottom:16px;padding:0}
   :focus-visible{outline:3px solid var(--teal);outline-offset:3px}
   @media (prefers-reduced-motion: reduce){
-    .hop,.shade,.bulbs,.bulbs::after,.line,.curtain-cta,.rays,.ball-spin,.ball-glow,.rays-sign,.glints,.floor::before,h1,.host-svg *,.slot .label i::after{animation:none !important}
+    .hop,.shade,.bulbs,.bulbs::after,.line,.curtain-cta,.rays,.ball-spin,.ball-glow,.rays-sign,.glints,.floor::before,h1,.host-svg *{animation:none !important}
   }
 </style>
 </head>
@@ -852,12 +804,12 @@
 <script>
 const DEFAULTS = {
   need: { key:'need', cls:'d-need', label:'Customer', faces:[
-    "Just smashed their screen — needs something tough",
+    "All about the business",
     "Lives on TikTok and YouTube",
     "Switching from an old iPhone",
     "Takes photos of their kids constantly",
-    "Wants the most phone for the least money",
-    "Mobile gamer — speed and screen matter"
+    "Needs best bang for the buck",
+    "Gaming on the go — speed and screen matter"
   ]},
   feat: { key:'feat', cls:'d-feat', label:'Feature', faces:[
     "Camera and AI photo editing",
@@ -895,8 +847,8 @@ const DEFAULTS = {
 
 const clone = o => JSON.parse(JSON.stringify(o));
 let dice = clone(DEFAULTS);
-const ORDER = ['need','feat','brand','attach'];
-let activeDice = ['need','feat','brand'];       // which dice are in play, in order
+const ORDER = ['brand','need','feat','attach'];   // board order: Device, Customer, Feature, Attach
+let activeDice = ['brand','need','feat'];       // which dice are in play, in order
 let phase = 'idle'; // idle | pitching | resolving
 let results = {};
 
@@ -1620,7 +1572,7 @@ function buildEditors(){
   draftDice = activeDice.slice();
   renderPicks();
   document.getElementById('meterToggle').checked = showMeter;
-  editors.innerHTML = ['need','feat','brand','attach','obj'].map(key=>`
+  editors.innerHTML = [...ORDER,'obj'].map(key=>`
     <fieldset>
       <legend>${dice[key].label}${key==='obj'?' — red die':''}${key==='attach'?' — optional':''}</legend>
       <div class="faces">
@@ -1705,7 +1657,7 @@ window.addEventListener('resize', ()=>{
   resizeT = setTimeout(()=>{
     if(locked) return;                 // never re-lay-out a die that is mid-roll
     sizeDice();
-    ['need','feat','brand','attach','obj'].forEach(paintFaces);
+    [...ORDER,'obj'].forEach(paintFaces);
   }, 220);
 });
 
