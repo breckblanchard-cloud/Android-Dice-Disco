@@ -3108,9 +3108,15 @@ window.Reward = (function(){
     })(start);
   }
 
-  function rwSparkle(){
+  let sparkLoopAlive = false;
+
+  // Draw one spark. This must NEVER schedule the next one — the cluster below
+  // calls it several times, and if each of those rescheduled, every cluster
+  // would start another chain and the count would grow without limit.
+  function spawnSpark(){
     const host = document.getElementById('rwSparkles');
     if(!host || !setRunning) return;
+    if(host.childElementCount > 14) return;      // hard ceiling, whatever happens
     const TINTS = ['#FFF6DC','#FFF6DC','#FFE9A8','#FFD9EC','#CFF6F2'];
     const el = document.createElement('div');
     el.className = 'spark';
@@ -3129,12 +3135,22 @@ window.Reward = (function(){
       { transform:'translate(-50%,-50%) rotate('+(sp*1.3)+'deg) scale(.15)', opacity:0 }
     ], { duration:life, easing:'cubic-bezier(.2,.75,.3,1)' });
     setTimeout(()=> el.remove(), life+60);
-    // now and then a quick cluster, so it never falls into a rhythm
-    if(Math.random() < .22){
-      const extra = 1 + ((Math.random()*2)|0);
-      for(let i=1;i<=extra;i++) setTimeout(rwSparkle, i*(90 + Math.random()*140));
-    }
-    setTimeout(rwSparkle, 300 + Math.random()*640);
+  }
+
+  // The one and only scheduler. Exactly one chain exists at a time.
+  function rwSparkle(){
+    if(sparkLoopAlive) return;
+    sparkLoopAlive = true;
+    (function next(){
+      if(!setRunning){ sparkLoopAlive = false; return; }
+      spawnSpark();
+      // an occasional cluster, spawned directly — these do not reschedule
+      if(Math.random() < .22){
+        const extra = 1 + ((Math.random()*2)|0);
+        for(let i=1;i<=extra;i++) setTimeout(spawnSpark, i*(90 + Math.random()*140));
+      }
+      setTimeout(next, 300 + Math.random()*640);
+    })();
   }
 
   /* ---------------- flow ---------------- */
@@ -3201,6 +3217,7 @@ window.Reward = (function(){
     requestAnimationFrame(()=> requestAnimationFrame(()=>{
       buildBall();
       fitHeading();
+      cgSparkAlive = true;
       setTimeout(sparkle, 400);
       startRain();
     }));
@@ -3219,7 +3236,7 @@ window.Reward = (function(){
     heap.style.height = '0%'; heap.style.width = 'auto';
     live.length = 0; rest.length = 0;
     note.textContent = ''; note.classList.remove('show');
-    cgRunning = false; rainOn = false;
+    cgRunning = false; rainOn = false; cgSparkAlive = false;
     document.getElementById('cgSparks').innerHTML = '';
     [fanEl, awwEl].forEach(el=>{ try{ el.pause(); el.currentTime = 0; }catch(e){} });
     cg.classList.remove('show');
@@ -3342,9 +3359,11 @@ window.Reward = (function(){
     };
   }
 
+  let cgSparkAlive = false;
   function sparkle(){
     const host = document.getElementById('cgSparks');
-    if(!host || !cgRunning) return;
+    if(!host || !cgRunning){ cgSparkAlive = false; return; }
+    if(host.childElementCount > 14) { setTimeout(sparkle, 300); return; }
     const TINTS = ['#FFF6DC','#FFF6DC','#FFE9A8','#FFD9EC','#CFF6F2'];
     const el = document.createElement('div');
     el.className = 'spark';
