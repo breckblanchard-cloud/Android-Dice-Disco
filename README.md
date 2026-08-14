@@ -9,12 +9,16 @@ phone and shake to roll.
 
 ## How to play
 
-1. Shake the phone (or tap the buzzer) to roll.
-2. Each die lands in turn: who the customer is, which feature to sell, which
-   device, and optionally an attach goal.
-3. Deliver the pitch out loud.
-4. Shake again — the red objection die drops and the room goes to alarm.
-5. Handle the objection and close, then shake for the next round.
+1. Touch the screen to start.
+2. Shake the phone (or tap the buzzer) to roll.
+3. Each die lands in turn: which device, who the customer is, which feature to
+   sell, and optionally an attach goal.
+4. Deliver the pitch out loud — Feature, Advantage, Benefit.
+5. Shake again — the red objection die drops and the room goes to alarm.
+6. Handle the objection and close, then shake to cash in.
+7. The host asks whether you ran FAB and handled the objection. **Yes** pays out
+   a pile of gold; **Retry** sends you back for another go.
+8. Three payouts wins the board — fanfare, falling coins, and back to the start.
 
 ## Setup
 
